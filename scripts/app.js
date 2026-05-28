@@ -217,6 +217,20 @@ const taskDetailHashPrefix = 'task-';
 
 const changeLogEntries = [
     {
+        date: '2026-05-29',
+        type: '产品定位',
+        title: '首屏补充专业 Agent 与低门槛使用',
+        summary: '首页首屏明确创作者把能解决垂直复杂问题的专业 Agent 带到市场，用户只需要描述任务和验收结果，平台负责匹配、托管、证据和结算。',
+        impact: '平台定位从“展示 Agent”进一步收紧到“让普通人低门槛使用专业 AI 能力，并按结果付费”。'
+    },
+    {
+        date: '2026-05-29',
+        type: '交易安全',
+        title: '挑战窗口未结束时阻止自动结算',
+        summary: '前端会根据提交时间和挑战窗口判断自动结算是否可用；窗口未结束时不会把自动结算作为平台待处理动作展示，本地状态机也会拒绝提前结算。',
+        impact: '演示逻辑和后端状态机规则保持一致，避免用户误以为平台可以绕过争议保护直接放款。'
+    },
+    {
         date: '2026-05-28',
         type: '后端对接',
         title: 'API 合约检查加入状态机负向测试',
@@ -853,7 +867,7 @@ function getChallengeWindowLabel(task) {
 }
 
 function getSubmittedAt(task) {
-    const submitted = [...(task.history || [])].reverse().find(item => item.status === 'SUBMITTED');
+    const submitted = [...getAuditTimeline(task)].reverse().find(item => item.status === 'SUBMITTED');
     return submitted?.at || task.submittedAt || null;
 }
 
@@ -863,16 +877,32 @@ function getChallengeDeadline(task) {
     return Number(submittedAt) + Number(task.challengeWindowHours || 24) * 60 * 60 * 1000;
 }
 
+function getChallengeRemainingMs(task) {
+    const deadline = getChallengeDeadline(task);
+    if (!deadline) return null;
+    return deadline - Date.now();
+}
+
+function isChallengeWindowExpired(task) {
+    const remaining = getChallengeRemainingMs(task);
+    return remaining !== null && remaining <= 0;
+}
+
 function getChallengeStatus(task) {
     if (task.status !== 'SUBMITTED') return '';
-    const deadline = getChallengeDeadline(task);
-    if (!deadline) return '挑战窗口计时中';
-
-    const remaining = deadline - Date.now();
+    const remaining = getChallengeRemainingMs(task);
+    if (remaining === null) return '挑战窗口计时中';
     if (remaining <= 0) return '挑战窗口已结束，可自动结算';
 
     const hours = Math.ceil(remaining / (60 * 60 * 1000));
     return `挑战窗口剩余约 ${hours} 小时`;
+}
+
+function getTaskActionBlockReason(task, action) {
+    if (action === 'auto-settle' && task.status === 'SUBMITTED' && !isChallengeWindowExpired(task)) {
+        return getChallengeStatus(task) || '挑战窗口未结束，平台不能提前自动结算';
+    }
+    return '';
 }
 
 function getOwnershipProof(agent) {
@@ -3667,8 +3697,15 @@ function enrichAgent(agent) {
 }
 
 function normalizeTask(task) {
+    const createdAt = Number(task.createdAt || Date.now());
+    const history = (task.history || []).map((item, index) => ({
+        ...item,
+        at: item.at || createdAt + index * 60 * 1000
+    }));
+
     return {
         ...task,
+        createdAt,
         acceptanceCriteria: task.acceptanceCriteria || '交付物需要覆盖任务目标、风险点、可执行建议，并能被用户复核。',
         challengeWindowHours: Number(task.challengeWindowHours || 24),
         deliverableEvidence: task.deliverableEvidence || [],
@@ -3679,7 +3716,7 @@ function normalizeTask(task) {
             }
             return enrichAgent(agent);
         }),
-        history: task.history || []
+        history
     };
 }
 
@@ -4034,11 +4071,13 @@ function getTaskActionItems(task) {
 }
 
 function hasCurrentActorAction(task) {
-    return getTaskActionItems(task).some(item => getRequiredActor(item.action) === state.actor);
+    return getTaskActionItems(task).some(item => getRequiredActor(item.action) === state.actor
+        && !getTaskActionBlockReason(task, item.action));
 }
 
 function getCurrentActorActions(task) {
-    return getTaskActionItems(task).filter(item => getRequiredActor(item.action) === state.actor);
+    return getTaskActionItems(task).filter(item => getRequiredActor(item.action) === state.actor
+        && !getTaskActionBlockReason(task, item.action));
 }
 
 function getActionQueueEmptyMessage() {
@@ -4244,8 +4283,10 @@ function renderTasks() {
 function renderTaskActions(task) {
     const button = ({ action, label, style = 'secondary' }) => {
         const requiredActor = getRequiredActor(action);
-        const disabled = requiredActor !== state.actor;
-        const title = disabled ? `需要${getActorLabel(requiredActor)}身份操作` : '';
+        const actorBlocked = requiredActor !== state.actor;
+        const ruleBlockedReason = getTaskActionBlockReason(task, action);
+        const disabled = actorBlocked || Boolean(ruleBlockedReason);
+        const title = actorBlocked ? `需要${getActorLabel(requiredActor)}身份操作` : ruleBlockedReason;
         return `
             <button
                 class="btn btn-${style} btn-sm"
@@ -4893,6 +4934,12 @@ async function handleTaskAction(event) {
         return;
     }
 
+    const blockReason = getTaskActionBlockReason(task, action);
+    if (blockReason) {
+        showToast(blockReason, 'error');
+        return;
+    }
+
     if (action === 'fund') {
         openFundConfirmationModal(task.id, {
             reopenDetail: Boolean(button.closest('.task-detail-view'))
@@ -5381,6 +5428,11 @@ async function handleAcceptanceConfirmationSubmit(event) {
 
 async function commitTaskAction(task, action, options = {}) {
     try {
+        const blockReason = getTaskActionBlockReason(task, action);
+        if (blockReason) {
+            throw new Error(blockReason);
+        }
+
         const actionPayload = options.submission
             || options.dispute
             || options.resolution
@@ -5547,6 +5599,10 @@ async function runLocalTaskAction(task, action, actionPayload = null) {
         addSignedHistory('SETTLED', acceptanceConfirmation.summary, 'user');
         addHistory('SETTLED', 'Agent 成交、声誉和成功率已更新');
     } else if (action === 'auto-settle' && task.status === 'SUBMITTED') {
+        const blockReason = getTaskActionBlockReason(task, action);
+        if (blockReason) {
+            throw new Error(blockReason);
+        }
         const reputationEvents = applyAgentOutcomeToState(next, true);
         next.status = 'SETTLED';
         next.settlement = buildSettlement(next, 'challenge_window_expired', reputationEvents);

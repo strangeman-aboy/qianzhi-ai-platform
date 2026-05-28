@@ -29,6 +29,14 @@
 npm run build:demo
 ```
 
+本地预览这个静态演示包：
+
+```powershell
+npm run preview:demo
+```
+
+访问 `http://127.0.0.1:8120/index.html#home`。
+
 然后只发布 `dist/member-demo`，不要把项目根目录直接发布到公网。
 
 详细说明见：[docs/deployment-guide.md](docs/deployment-guide.md)

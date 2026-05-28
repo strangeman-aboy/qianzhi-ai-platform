@@ -74,6 +74,7 @@ window.QIANZHI_CONFIG = {
 
 - `index.html` 增加了 `noindex, nofollow`，减少被搜索引擎索引的概率。
 - 新增 `tools/build-member-demo.js`，用于生成纯前端演示包。
+- 新增 `tools/serve-static.js`，用于本地预览纯前端演示包。
 - 新增 `package.json`，提供构建命令。
 - `.gitignore` 已忽略 `dist/` 和本地数据库。
 
@@ -86,6 +87,14 @@ window.QIANZHI_CONFIG = {
 ```powershell
 npm run build:demo
 ```
+
+如果要在本地按 Netlify 的发布目录预览：
+
+```powershell
+npm run preview:demo
+```
+
+然后访问 `http://127.0.0.1:8120/index.html#home`。这一步看的就是 `dist/member-demo`，更接近成员打开线上演示时看到的文件结构。
 
 生成目录：
 
