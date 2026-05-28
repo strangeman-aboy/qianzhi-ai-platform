@@ -12,6 +12,42 @@
 - 成员能打开页面查看视觉、页面结构和本地演示流程。
 - 不把 `server.py`、`data/`、`docs/`、`tools/` 等开发资料发布到公网目录。
 
+## 当前线上演示信息
+
+- GitHub 私有仓库：`strangeman-aboy/qianzhi-ai-platform`
+- Netlify 项目名：`qianzhi-agent-demo`
+- 成员演示地址：[https://qianzhi-agent-demo.netlify.app/#home](https://qianzhi-agent-demo.netlify.app/#home)
+- 发布分支：`main`
+- 构建命令：`npm run build:demo`
+- 发布目录：`dist/member-demo`
+
+当前 Netlify 项目根目录里有 `netlify.toml`，会固定使用上面的构建命令和发布目录。后续如果 Netlify 的 Deploy file browser 又出现 `docs`、`tools`、`server.py`，说明发布目录配置被改错了，应立即停止对外分享链接并恢复 `dist/member-demo`。
+
+## 后续修改和自动更新流程
+
+以后继续改页面时，流程是：
+
+```powershell
+git status
+git add .
+git commit -m "说明这次改了什么"
+git push
+```
+
+推送到 GitHub 的 `main` 分支后，Netlify 会自动重新部署。Netlify 会执行：
+
+```text
+npm run build:demo
+```
+
+并发布：
+
+```text
+dist/member-demo
+```
+
+如果只是本地改了代码但没有 `git push`，线上网站不会变化。如果修改了 `server.py`，当前 Netlify 静态演示站也不会使用它，因为成员演示版只发布前端静态包。
+
 ## 重要边界
 
 只要别人能打开网页，浏览器就会下载前端文件，所以成员可以在浏览器开发者工具里看到发布后的 `index.html`、`styles/main.css`、`scripts/app.js` 和图片资源。这是网页的基本机制，无法完全隐藏。
@@ -64,7 +100,29 @@ dist/member-demo/
 
 发布时只发布 `dist/member-demo`，不要发布项目根目录。
 
-## 推荐方案：私有 GitHub + Vercel
+## 当前方案：私有 GitHub + Netlify
+
+当前项目已经使用 Netlify 部署。重新创建或迁移时按下面填写：
+
+1. 新建站点，选择从 Git 导入。
+2. 选择私有仓库 `strangeman-aboy/qianzhi-ai-platform`。
+3. Build Command 填：
+
+```text
+npm run build:demo
+```
+
+4. Publish Directory 填：
+
+```text
+dist/member-demo
+```
+
+5. 部署完成后检查 Deploy file browser，只应该看到 `images`、`scripts`、`styles`、`index.html`、`robots.txt` 和 Netlify 自己保留的少量配置文件。
+
+注意：Netlify 的部分访问保护能力可能和账号套餐有关。当前成员演示主要依赖私有仓库、静态演示包、`noindex` 和只向内部成员分享链接，不能当作严格权限系统。
+
+## 备选方案：私有 GitHub + Vercel
 
 适合快速给成员看页面。
 
@@ -110,28 +168,6 @@ dist/member-demo
 - 演示链接只发给内部成员。
 - 页面保持 `noindex`。
 - 不在页面里放真实密钥、真实资金信息或未公开商业数据。
-
-## 备选方案：私有 GitHub + Netlify
-
-Netlify 步骤类似：
-
-1. 新建站点，选择从 Git 导入。
-2. 选择私有仓库。
-3. Build Command 填：
-
-```text
-npm run build:demo
-```
-
-4. Publish Directory 填：
-
-```text
-dist/member-demo
-```
-
-5. 部署完成后开启 Password Protection 或团队访问控制。
-
-注意：Netlify 的部分访问保护能力可能和账号套餐有关。
 
 ## 备选方案：自己的服务器或 nginx
 
@@ -211,4 +247,3 @@ node tools/verify-api-contract.js https://api.qianzhi.example.com
 可以这样说：
 
 > 这是乾智 AI Agent 任务交易平台的前端演示版，用于查看产品方向、页面结构和交易流程。当前链接不连接真实后端，不涉及真实资金、真实 Agent 执行或真实钱包授权。页面里的状态和数据用于演示。
-

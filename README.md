@@ -19,6 +19,10 @@
 
 本地的 `127.0.0.1` / `localhost` 只在自己的电脑上有效。要让别人打开，需要把前端文件部署到公网静态站点，或者用临时内网穿透把本地服务映射成公网链接。
 
+当前成员演示地址：
+
+[https://qianzhi-agent-demo.netlify.app/#home](https://qianzhi-agent-demo.netlify.app/#home)
+
 成员演示推荐先生成纯前端静态包：
 
 ```powershell
