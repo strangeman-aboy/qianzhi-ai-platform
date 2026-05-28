@@ -1,0 +1,10 @@
+{
+  "name": "qianzhi-ai-agent-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Member demo build for the Qianzhi AI Agent task transaction platform prototype.",
+  "scripts": {
+    "build:demo": "node tools/build-member-demo.js",
+    "check:js": "node --check scripts/app.js && node --check tools/build-member-demo.js && node --check tools/visual-qa.js && node --check tools/verify-api-contract.js"
+  }
+}
