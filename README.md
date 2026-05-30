@@ -15,6 +15,29 @@
 
 如果只想看静态页面，不希望它尝试连接 API，可以把 `scripts/config.js` 里的 `apiMode` 改为 `off`。
 
+如果要连接当前本机 Java 后端，先启动 `D:\AGENT 平台设计\ai-platform后端`，然后把 `scripts/config.js` 改成：
+
+```js
+apiBase: 'http://127.0.0.1:8080',
+apiMode: 'required',
+environmentName: '本地 Java 后端'
+```
+
+如果要确认“前端页面确实接到了 Java 后端”，可以先生成并启动静态预览，再跑联调检查：
+
+```powershell
+npm run build:demo
+npm run preview:demo
+```
+
+保持预览窗口运行，另开一个终端执行：
+
+```powershell
+npm run qa:backend-ui
+```
+
+这个检查会临时把页面配置指向 `http://127.0.0.1:8080`，确认首页环境条、Agent 市场、任务状态机和交易保障页都能从后端拿到数据。它不会修改 `scripts/config.js`，也不会影响 Netlify 上的成员静态演示。
+
 ## 给别人看
 
 本地的 `127.0.0.1` / `localhost` 只在自己的电脑上有效。要让别人打开，需要把前端文件部署到公网静态站点，或者用临时内网穿透把本地服务映射成公网链接。

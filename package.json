@@ -6,6 +6,7 @@
   "scripts": {
     "build:demo": "node tools/build-member-demo.js",
     "preview:demo": "node tools/serve-static.js dist/member-demo 8120",
-    "check:js": "node --check scripts/app.js && node --check tools/build-member-demo.js && node --check tools/serve-static.js && node --check tools/visual-qa.js && node --check tools/verify-api-contract.js"
+    "qa:backend-ui": "node tools/frontend-backend-qa.js http://127.0.0.1:8120 http://127.0.0.1:8080",
+    "check:js": "node --check scripts/app.js && node --check tools/build-member-demo.js && node --check tools/serve-static.js && node --check tools/visual-qa.js && node --check tools/verify-api-contract.js && node --check tools/frontend-backend-qa.js"
   }
 }
