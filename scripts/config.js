@@ -5,7 +5,9 @@ window.QIANZHI_CONFIG = {
     //   apiBase: 'http://127.0.0.1:8080'
     //   apiMode: 'required'
     //   environmentName: '本地 Java 后端'
+    //   apiToken: 'only-for-private-staging'
     apiBase: '',
+    apiToken: '',
 
     // auto: use API when /api/health is available, otherwise fall back to local demo data.
     // off: never call API, safest for static cloud demos.

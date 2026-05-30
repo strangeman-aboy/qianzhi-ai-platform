@@ -133,6 +133,7 @@ const categoryLabels = {
 
 const appConfig = {
     apiBase: '',
+    apiToken: '',
     apiMode: 'auto',
     environmentName: 'local',
     ...(window.QIANZHI_CONFIG || {})
@@ -5661,9 +5662,17 @@ function replaceAgent(agent) {
 }
 
 async function apiRequest(path, options = {}) {
+    const headers = {
+        'Content-Type': 'application/json; charset=utf-8',
+        ...(options.headers || {})
+    };
+    if (appConfig.apiToken) {
+        headers.Authorization = `Bearer ${appConfig.apiToken}`;
+    }
+
     const response = await fetch(buildApiUrl(path), {
-        headers: { 'Content-Type': 'application/json; charset=utf-8' },
-        ...options
+        ...options,
+        headers
     });
 
     const data = await response.json();

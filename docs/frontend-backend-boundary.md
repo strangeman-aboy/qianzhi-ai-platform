@@ -45,6 +45,7 @@
 ```js
 window.QIANZHI_CONFIG = {
     apiBase: '',
+    apiToken: '',
     apiMode: 'auto',
     environmentName: 'local'
 };
@@ -53,6 +54,7 @@ window.QIANZHI_CONFIG = {
 字段含义：
 
 - `apiBase`：真实后端 API 域名。空字符串表示同源 `/api`。
+- `apiToken`：临时测试环境 token。真实生产登录不建议用静态前端 token 替代。
 - `apiMode: 'auto'`：能连 API 就用 API，连不上就本地演示。
 - `apiMode: 'off'`：完全不请求 API，适合直接打开本地 HTML。
 - `apiMode: 'required'`：必须连接 API，连不上就提示错误。
@@ -76,6 +78,7 @@ window.QIANZHI_CONFIG = {
 ```js
 window.QIANZHI_CONFIG = {
     apiBase: 'https://api.qianzhi.example.com',
+    apiToken: '',
     apiMode: 'required',
     environmentName: '真实业务后端'
 };

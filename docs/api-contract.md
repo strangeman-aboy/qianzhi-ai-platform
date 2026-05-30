@@ -15,12 +15,14 @@
 ```js
 window.QIANZHI_CONFIG = {
     apiBase: 'https://api.example.com',
+    apiToken: '',
     apiMode: 'required',
     environmentName: '真实业务后端'
 };
 ```
 
 如果 `apiBase` 为空，前端会请求同源 `/api/...`。
+`apiToken` 只用于私有测试环境的临时 Bearer token；真实生产环境应使用登录态、钱包签名或服务端会话。
 
 ## 本地合约检查
 
@@ -30,7 +32,7 @@ window.QIANZHI_CONFIG = {
 node tools/verify-api-contract.js https://api.xxx.com
 ```
 
-脚本会检查 `/api/health`、`/api/agents`、`/api/tasks` 和 `/api/tasks/{id}` 这些基础接口，也会验证缺失或不完整 `creatorDeclaration` 的 Agent 入驻必须被拒绝；同时会检查 `/api/evidence` 是否能登记文件哈希存证、无效哈希是否会被拒绝，并会对一笔进行中的任务发起不带 `signature`、错身份签名、签名动作不匹配、签名任务不匹配、缺少争议证据、挑战窗口未结束自动结算和缺少仲裁依据的状态流转负向测试，要求后端拒绝且任务状态不改变；`/api/readiness`、`/api/creators`、`/api/withdrawals` 属于推荐接口，缺失时会给警告。需要测试鉴权时，可通过 `QIANZHI_API_TOKEN` 传入 Bearer token。
+脚本会检查 `/api/health`、`/api/agents`、`/api/tasks` 和 `/api/tasks/{id}` 这些基础接口，也会验证缺失或不完整 `creatorDeclaration` 的 Agent 入驻必须被拒绝；同时会检查 `/api/evidence` 是否能登记文件哈希存证、无效哈希是否会被拒绝，并会对一笔进行中的任务发起不带 `signature`、错身份签名、签名动作不匹配、签名任务不匹配、缺少争议证据、挑战窗口未结束自动结算和缺少仲裁依据的状态流转负向测试，要求后端拒绝且任务状态不改变；`/api/readiness`、`/api/creators`、`/api/withdrawals`、`/api/audit` 属于推荐接口，缺失时会给警告。需要测试鉴权时，可通过 `QIANZHI_API_TOKEN` 传入 Bearer token。
 
 ## 状态枚举
 
@@ -504,6 +506,68 @@ mock 允许的 `actor`：
 平台拒绝提现，金额回到可提现池。
 
 请求体与 `approve` 相同，但 `signature.action` 为 `withdraw-reject`。
+
+### `GET /api/audit`
+
+查询平台级重点交易审计流。这个接口不是普通修改日志，不应把每个字段变更都写进去；它应该聚合和交易安全有关的关键事件，方便平台运营、仲裁人员和演示者快速确认风险状态。
+
+建议纳入的事件：
+
+- 预算进入托管。
+- Agent 提交交付物。
+- 用户发起争议。
+- 托管结算、退款、创作者分账。
+- 证据哈希登记。
+- Agent 所有权复核。
+- 创作者提现申请和平台审核。
+
+查询参数：
+
+```http
+GET /api/audit?limit=20
+```
+
+响应：
+
+```json
+{
+  "summary": {
+    "shown": 12,
+    "totalSignals": 24,
+    "highRisk": 2,
+    "openDisputes": 1,
+    "settledTasks": 1,
+    "refundedTasks": 0,
+    "pendingWithdrawals": 0,
+    "evidenceItems": 3
+  },
+  "events": [
+    {
+      "id": "AUD-8F1A0C8B21D3",
+      "source": "task_history",
+      "sourceId": "TH-12",
+      "type": "dispute_opened",
+      "severity": "high",
+      "title": "用户发起争议",
+      "summary": "用户认为交付物没有覆盖关键风险点，要求仲裁复核。",
+      "actor": "user",
+      "at": 1779850000000,
+      "taskId": "QZ-1027",
+      "status": "DISPUTED",
+      "signatureId": "SIG-..."
+    }
+  ]
+}
+```
+
+字段说明：
+
+- `summary` 是当前审计流的运营概览，前端可用它展示风险数量和待处理项。
+- `events[].id` 是稳定审计编号，用于展示和追踪。
+- `events[].severity` 建议使用 `low`、`medium`、`high`。
+- `events[].type` 应表达业务含义，例如 `dispute_opened`、`settlement_released`、`refund_released`、`evidence_registered`、`withdrawal_pending_review`。
+- `events[].source` 和 `sourceId` 指向原始数据来源，例如 `task_history`、`escrow_events`、`evidence_vault`、`withdrawals`。
+- 如果事件绑定了任务、证据、提现或签名，应尽量返回 `taskId`、`evidenceId`、`withdrawalId`、`signatureId`。
 
 响应：
 

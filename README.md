@@ -23,6 +23,12 @@ apiMode: 'required',
 environmentName: '本地 Java 后端'
 ```
 
+如果测试后端开启了临时 token，再加：
+
+```js
+apiToken: 'your-test-token'
+```
+
 如果要确认“前端页面确实接到了 Java 后端”，可以先生成并启动静态预览，再跑联调检查：
 
 ```powershell

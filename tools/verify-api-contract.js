@@ -830,6 +830,38 @@ async function checkWithdrawals(baseUrl) {
     return response.data;
 }
 
+async function checkAuditLog(baseUrl) {
+    const response = await requestJson(baseUrl, "/api/audit?limit=12");
+
+    if (!response.ok) {
+        addResult("warn", "GET /api/audit", `推荐接口暂不可用：${response.error || response.status}`);
+        return null;
+    }
+
+    if (!isObject(response.data?.summary) || !Array.isArray(response.data?.events)) {
+        addResult("warn", "GET /api/audit", "响应建议包含 summary 对象和 events 数组");
+        return response.data;
+    }
+
+    const invalid = response.data.events.filter((event) => {
+        return !isObject(event)
+            || !event.id
+            || !event.type
+            || !event.severity
+            || !event.title
+            || !event.actor
+            || !event.at;
+    });
+
+    if (invalid.length) {
+        addResult("warn", "GET /api/audit", `存在 ${invalid.length} 条缺少核心字段的审计事件`);
+        return response.data;
+    }
+
+    addResult("pass", "GET /api/audit", `重点交易审计事件 ${response.data.events.length} 条`);
+    return response.data;
+}
+
 function printReport(baseUrl) {
     const counts = results.reduce((memo, item) => {
         memo[item.level] += 1;
@@ -905,6 +937,7 @@ async function main() {
     );
     await checkCreators(baseUrl);
     await checkWithdrawals(baseUrl);
+    await checkAuditLog(baseUrl);
 
     printReport(baseUrl);
 }
